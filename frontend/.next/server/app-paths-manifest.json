@@ -1,8 +1,0 @@
-{
-  "/admin/page": "app/admin/page.js",
-  "/modules/staff/page": "app/modules/staff/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/modules/vehicle/page": "app/modules/vehicle/page.js",
-  "/modules/fm-daily-work/page": "app/modules/fm-daily-work/page.js",
-  "/modules/vendor/page": "app/modules/vendor/page.js"
-}
