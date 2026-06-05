@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="bg-white border-t border-gray-200 px-6 py-4">
       <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-600 space-y-2 sm:space-y-0">
         <div className="flex items-center space-x-4">
-          <span className="font-semibold text-gray-900">© 2024 Society Management</span>
+          <span className="font-semibold text-gray-900">© 2026 Society Management</span>
           <span className="text-gray-400 hidden sm:inline">|</span>
           <span className="hover:text-indigo-600 cursor-pointer transition-colors text-xs sm:text-sm">Privacy</span>
           <span className="hover:text-indigo-600 cursor-pointer transition-colors text-xs sm:text-sm">Terms</span>

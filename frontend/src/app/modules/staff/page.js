@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Users, Clock, Edit, Trash2, Plus, LogOut, LogIn } from 'lucide-react';
 
 export default function StaffModule() {
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const [staffLogs, setStaffLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -13,44 +14,65 @@ export default function StaffModule() {
   });
 
   useEffect(() => {
-    // Load staff logs from localStorage
-    const storedStaff = localStorage.getItem('society_staff');
-    if (storedStaff) {
-      setStaffLogs(JSON.parse(storedStaff));
-    }
-    setLoading(false);
+    const fetchStaffLogs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/staff`);
+        if (!res.ok) throw new Error('Unable to load staff records');
+        const data = await res.json();
+        setStaffLogs(data);
+      } catch (err) {
+        console.error('Staff load error', err);
+        setStaffLogs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStaffLogs();
   }, []);
-
-  useEffect(() => {
-    // Save staff logs to localStorage whenever they change
-    localStorage.setItem('society_staff', JSON.stringify(staffLogs));
-  }, [staffLogs]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleClockIn = (e) => {
+  const handleClockIn = async (e) => {
     e.preventDefault();
-    const newLog = {
-      id: staffLogs.length + 1,
-      staff_name: formData.staff_name,
-      role: formData.role,
-      shift_type: formData.shift_type,
-      status: formData.status,
-      qr_code: 'ST-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-      in_time: new Date().toISOString(),
-      out_time: null
-    };
-    setStaffLogs([newLog, ...staffLogs]);
-    setShowAddForm(false);
-    setFormData({ staff_name: '', role: 'housekeeping', shift_type: 'morning', status: 'present', qr_code: 'SYS-GEN-123' });
-    alert('Staff clocked in successfully!');
+    try {
+      const response = await fetch(`${API_BASE}/api/staff/in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          staff_name: formData.staff_name,
+          role: formData.role,
+          shift_type: formData.shift_type,
+          status: formData.status,
+          qr_code: 'ST-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+        })
+      });
+      if (!response.ok) throw new Error('Unable to clock in staff');
+      const record = await response.json();
+      setStaffLogs([record, ...staffLogs]);
+      setShowAddForm(false);
+      setFormData({ staff_name: '', role: 'housekeeping', shift_type: 'morning', status: 'present', qr_code: 'SYS-GEN-123' });
+      alert('Staff clocked in successfully!');
+    } catch (err) {
+      console.error('Clock in error', err);
+      alert('Unable to clock staff in. Check your backend.');
+    }
   };
 
-  const handleClockOut = (id) => {
-    setStaffLogs(staffLogs.map(log => log.id === id ? { ...log, out_time: new Date().toISOString() } : log));
-    alert('Staff clocked out successfully!');
+  const handleClockOut = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/staff/out/${id}`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Unable to clock out staff');
+      const updated = await response.json();
+      setStaffLogs(staffLogs.map(log => log.id === updated.id ? updated : log));
+      alert('Staff clocked out successfully!');
+    } catch (err) {
+      console.error('Clock out error', err);
+      alert('Unable to clock staff out. Check your backend.');
+    }
   };
 
   const handleEdit = (staff) => {
@@ -80,10 +102,18 @@ export default function StaffModule() {
     alert('Staff record updated successfully!');
   };
 
-  const handleDelete = (id) => {
-    if (confirm('Are you sure you want to delete this staff record?')) {
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this staff record?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/api/staff/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Unable to delete record');
       setStaffLogs(staffLogs.filter(log => log.id !== id));
       alert('Staff record deleted successfully!');
+    } catch (err) {
+      console.error('Delete staff error', err);
+      alert('Unable to delete staff record.');
     }
   };
 

@@ -326,7 +326,7 @@ export default function HelpCenterPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>© 2024 Society Management. All rights reserved.</p>
+            <p>© 2026 Society Management. All rights reserved.</p>
           </div>
         </div>
       </footer>

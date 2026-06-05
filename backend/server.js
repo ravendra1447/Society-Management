@@ -10,6 +10,12 @@ const VisitorLog = require('./models/VisitorLog');
 const VehicleLog = require('./models/VehicleLog');
 const Notice = require('./models/Notice');
 const Complaint = require('./models/Complaint');
+const SOSLog = require('./models/SOSLog');
+const FMDailyTask = require('./models/FMDailyTask');
+const FMHelpdeskTicket = require('./models/FMHelpdeskTicket');
+const FMDailyReading = require('./models/FMDailyReading');
+const FMHKAttendance = require('./models/FMHKAttendance');
+const FMMoveLog = require('./models/FMMoveLog');
 const Poll = require('./models/Poll');
 const ClassifiedAd = require('./models/ClassifiedAd');
 const User = require('./models/User');
@@ -22,8 +28,9 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const bodyParserLimit = '20mb';
+app.use(express.json({ limit: bodyParserLimit }));
+app.use(express.urlencoded({ extended: true, limit: bodyParserLimit }));
 
 // Connect to DB and sync models
 const initDb = async () => {
@@ -201,6 +208,133 @@ app.post('/api/vehicle/log', async (req, res) => {
   try {
     const { vehicle_number, vehicle_type, status, anpr_confidence } = req.body;
     const log = await VehicleLog.create({ vehicle_number, vehicle_type, status, anpr_confidence, entry_time: new Date() });
+    res.json(log);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// SOS Routes
+app.get('/api/sos', async (req, res) => {
+  try {
+    const logs = await SOSLog.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/sos', async (req, res) => {
+  try {
+    const { raised_by, alert_type } = req.body;
+    const log = await SOSLog.create({ raised_by, alert_type, status: 'Active' });
+    res.json(log);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/sos/:id/resolve', async (req, res) => {
+  try {
+    const log = await SOSLog.findByPk(req.params.id);
+    if (!log) return res.status(404).json({ error: 'SOS log not found' });
+    await log.update({ status: 'Resolved' });
+    res.json(log);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// FM Daily Work Routes
+app.get('/api/fm/tasks', async (req, res) => {
+  try {
+    const tasks = await FMDailyTask.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/fm/tasks', async (req, res) => {
+  try {
+    const { date, work_title, description, assigned_staff, status, priority, completion_time, remarks, photo_data } = req.body;
+    const task = await FMDailyTask.create({ date, work_title, description, assigned_staff, status, priority, completion_time, remarks, photo_data });
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/fm/readings', async (req, res) => {
+  try {
+    const readings = await FMDailyReading.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(readings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/fm/readings', async (req, res) => {
+  try {
+    const { asset, value, note, reading_date } = req.body;
+    const reading = await FMDailyReading.create({ asset, value, note, reading_date });
+    res.json(reading);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/fm/helpdesk', async (req, res) => {
+  try {
+    const tickets = await FMHelpdeskTicket.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(tickets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/fm/helpdesk', async (req, res) => {
+  try {
+    const { ticket_id, status, remark, report_date } = req.body;
+    const ticket = await FMHelpdeskTicket.create({ ticket_id, status, remark, report_date });
+    res.json(ticket);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/fm/attendance', async (req, res) => {
+  try {
+    const attendance = await FMHKAttendance.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(attendance);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/fm/attendance', async (req, res) => {
+  try {
+    const { staff_name, attendance_date, status, remarks } = req.body;
+    const record = await FMHKAttendance.create({ staff_name, attendance_date, status, remarks });
+    res.json(record);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/fm/move-logs', async (req, res) => {
+  try {
+    const logs = await FMMoveLog.findAll({ order: [['createdAt', 'DESC']] });
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/fm/move-logs', async (req, res) => {
+  try {
+    const { type, flat, move_date, note } = req.body;
+    const log = await FMMoveLog.create({ type, flat, move_date, note });
     res.json(log);
   } catch (err) {
     res.status(500).json({ error: err.message });

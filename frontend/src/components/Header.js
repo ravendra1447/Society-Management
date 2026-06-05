@@ -15,7 +15,7 @@ export default function Header({ onMenuClick }) {
 
   const handleLogout = () => {
     localStorage.removeItem('society_user');
-    router.push('/login');
+    router.push('/');
   };
 
   return (

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -38,7 +39,12 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('society_user', JSON.stringify(data));
-      router.push('/');
+      // Redirect admin users to admin dashboard
+      if (data.role === 'Admin') {
+        router.push('/admin');
+      } else {
+        router.push('/');
+      }
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -46,28 +52,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Left Side - Dynamic Branding */}
-      <div className="hidden lg:flex w-1/2 bg-slate-900 relative overflow-hidden flex-col justify-between p-16">
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 relative overflow-hidden flex-col justify-between p-16">
         {/* Animated Background Elements */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-600 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-cyan-600 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse" style={{ animationDelay: '2s' }}></div>
-          
-          {/* Pattern overlay */}
+        <div className="absolute inset-0 overflow-hidden z-0">
+          <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl"></div>
+          <div className="absolute -bottom-24 right-16 h-80 w-80 rounded-full bg-cyan-500/15 blur-3xl"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(67,56,202,0.16),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(34,211,238,0.14),_transparent_30%)]"></div>
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         </div>
 
         <div className="relative z-10">
-          <div className="inline-flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 border border-white/20 mb-8 backdrop-blur-md">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-ping"></span>
-            <span className="text-white text-xs font-bold tracking-widest uppercase">System Online &bull; v2.0</span>
+          <div className="inline-flex items-center space-x-2 bg-slate-100/10 rounded-full px-4 py-2 border border-white/10 mb-8 backdrop-blur-md">
+            <span className="w-2 h-2 bg-cyan-300 rounded-full animate-pulse"></span>
+            <span className="text-slate-200 text-xs font-semibold tracking-widest uppercase">System Online • v2.0</span>
           </div>
           <h1 className="text-5xl font-black text-white leading-tight mb-6">
-            Intelligent <br/> Society Management.
+            <span className="block">Intelligent</span>
+            <span className="block bg-gradient-to-r from-cyan-300 via-sky-300 to-violet-300 bg-clip-text text-transparent">Society Management.</span>
           </h1>
           <p className="text-lg text-slate-300 max-w-md leading-relaxed">
-            Experience the next generation of residential security, operations, and community engagement. Powered by real-time IoT and AI monitoring.
+            Experience the next generation of residential security, operations, and community engagement with a polished, modern control center.
           </p>
         </div>
 
@@ -91,14 +97,14 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-white relative">
-        <div className="w-full max-w-md animate-fade-in-up">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 bg-slate-50 relative">
+        <div className="w-full max-w-md animate-fade-in-up rounded-[2rem] border border-slate-200/80 bg-white shadow-[0_40px_80px_rgba(15,23,42,0.08)] p-8 sm:p-10">
           <div className="text-center lg:text-left mb-10">
-            <div className="lg:hidden inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-6 shadow-xl text-white text-3xl">
+            <div className="lg:hidden inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-3xl mb-6 shadow-xl text-white text-3xl">
               🏢
             </div>
-            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome Back</h2>
-            <p className="text-gray-500 mt-2">Enter your email/username and password to login.</p>
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h2>
+            <p className="text-slate-500 mt-2">Enter your email or username and password to login.</p>
           </div>
 
           {error && (
@@ -133,7 +139,7 @@ export default function LoginPage() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-bold text-gray-700">Password</label>
-                <a href="#" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Forgot password?</a>
+                <Link href="/forgot-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Forgot password?</Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -171,7 +177,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-xl shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] transform hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold py-4 px-4 rounded-2xl shadow-[0_16px_40px_rgba(79,70,229,0.18)] hover:shadow-[0_18px_45px_rgba(79,70,229,0.32)] transform hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -181,16 +187,6 @@ export default function LoginPage() {
               ) : 'Sign In →'}
             </button>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-            <p className="text-xs font-bold text-amber-800 mb-2">🔑 Default Admin Credentials:</p>
-            <div className="flex flex-wrap gap-3">
-              <code className="text-xs bg-amber-100 px-2 py-1 rounded font-mono text-amber-900">admin</code>
-              <code className="text-xs bg-amber-100 px-2 py-1 rounded font-mono text-amber-900">password123</code>
-            </div>
-            <p className="text-xs text-amber-600 mt-2">You can also login with email: <code className="font-mono">admin@society.com</code></p>
-          </div>
 
         </div>
       </div>

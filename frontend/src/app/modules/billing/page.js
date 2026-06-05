@@ -15,22 +15,41 @@ export default function BillingLayout() {
     amount: '',
     due_date: '',
     month: '',
-    status: 'Unpaid'
+    status: 'Unpaid',
+    processed_by: '',
+    completed_by: '',
+    notes: ''
   });
 
   useEffect(() => {
-    // Load invoices from localStorage
-    const storedInvoices = localStorage.getItem('society_invoices');
-    if (storedInvoices) {
-      setInvoices(JSON.parse(storedInvoices));
-    }
-    setLoading(false);
+    // Load invoices from API
+    fetchInvoices();
   }, []);
 
-  useEffect(() => {
-    // Save invoices to localStorage whenever they change
-    localStorage.setItem('society_invoices', JSON.stringify(invoices));
-  }, [invoices]);
+  const fetchInvoices = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/invoices');
+      if (res.ok) {
+        const data = await res.json();
+        setInvoices(data);
+      } else {
+        // Fallback to localStorage if API fails
+        const storedInvoices = localStorage.getItem('society_invoices');
+        if (storedInvoices) {
+          setInvoices(JSON.parse(storedInvoices));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      // Fallback to localStorage
+      const storedInvoices = localStorage.getItem('society_invoices');
+      if (storedInvoices) {
+        setInvoices(JSON.parse(storedInvoices));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,6 +58,10 @@ export default function BillingLayout() {
   const handleCreateInvoice = async (e) => {
     e.preventDefault();
     try {
+      // Get current admin from localStorage
+      const user = JSON.parse(localStorage.getItem('society_user') || '{}');
+      const adminName = user.name || 'Admin';
+      
       // Save to backend API
       const res = await fetch('http://localhost:5000/api/invoices', {
         method: 'POST',
@@ -48,47 +71,79 @@ export default function BillingLayout() {
           month: formData.month,
           amount: parseFloat(formData.amount),
           due_date: formData.due_date,
-          status: formData.status
+          status: formData.status,
+          flat: formData.flat,
+          processed_by: adminName,
+          notes: formData.notes
         })
       });
 
-      let backendData = null;
       if (res.ok) {
-        backendData = await res.json();
+        // Refresh data from database after successful insert
+        await fetchInvoices();
+        setShowNewInvoiceModal(false);
+        setFormData({ resident_id: '', flat: '', amount: '', due_date: '', month: '', status: 'Unpaid', processed_by: '', completed_by: '', notes: '' });
+        alert('Invoice created successfully!');
+      } else {
+        alert('Error creating invoice');
       }
-
-      // Save to localStorage (works even if backend fails)
-      const newInvoice = {
-        id: backendData?.id || invoices.length + 1,
-        resident_id: formData.resident_id,
-        flat: formData.flat,
-        amount: parseFloat(formData.amount),
-        due_date: formData.due_date,
-        month: formData.month,
-        status: formData.status,
-        created_at: new Date().toISOString()
-      };
-      setInvoices([newInvoice, ...invoices]);
-      setShowNewInvoiceModal(false);
-      setFormData({ resident_id: '', flat: '', amount: '', due_date: '', month: '', status: 'Unpaid' });
-      alert('Invoice created successfully!');
     } catch (err) {
       console.error(err);
-      // Fallback to localStorage only if backend fails
-      const newInvoice = {
-        id: invoices.length + 1,
-        resident_id: formData.resident_id,
-        flat: formData.flat,
-        amount: parseFloat(formData.amount),
-        due_date: formData.due_date,
-        month: formData.month,
-        status: formData.status,
-        created_at: new Date().toISOString()
-      };
-      setInvoices([newInvoice, ...invoices]);
-      setShowNewInvoiceModal(false);
-      setFormData({ resident_id: '', flat: '', amount: '', due_date: '', month: '', status: 'Unpaid' });
-      alert('Invoice created successfully (saved locally)!');
+      alert('Error connecting to server. Please check if backend is running.');
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const user = JSON.parse(localStorage.getItem('society_user') || '{}');
+      const adminName = user.name || 'Admin';
+      
+      // Update local state immediately for instant feedback
+      const updatedInvoices = invoices.map(inv => {
+        if (inv.id === id) {
+          let updated = { ...inv, status: newStatus };
+          if (newStatus === 'Processing') {
+            updated.processed_by = adminName;
+            updated.processed_date = new Date().toISOString();
+          }
+          if (newStatus === 'Paid') {
+            updated.completed_by = adminName;
+            updated.completed_date = new Date().toISOString();
+          }
+          return updated;
+        }
+        return inv;
+      });
+      setInvoices(updatedInvoices);
+      
+      // Try to sync with backend
+      let updateData = { status: newStatus };
+      
+      if (newStatus === 'Processing') {
+        updateData.processed_by = adminName;
+        updateData.processed_date = new Date().toISOString();
+      }
+      
+      if (newStatus === 'Paid') {
+        updateData.completed_by = adminName;
+        updateData.completed_date = new Date().toISOString();
+      }
+      
+      const res = await fetch(`http://localhost:5000/api/invoices/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      if (res.ok) {
+        await fetchInvoices();
+      } else {
+        // Keep local state if backend fails
+        console.log('Backend update failed, keeping local state');
+      }
+    } catch (err) {
+      console.error(err);
+      console.log('Backend update failed, keeping local state');
     }
   };
 
@@ -126,6 +181,7 @@ export default function BillingLayout() {
   const getStatusColor = (status) => {
     switch(status) {
       case 'Paid': return 'bg-green-100 text-green-700';
+      case 'Processing': return 'bg-blue-100 text-blue-700';
       case 'Unpaid': return 'bg-orange-100 text-orange-700';
       case 'Overdue': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
@@ -135,6 +191,7 @@ export default function BillingLayout() {
   const getStatusText = (status) => {
     switch(status) {
       case 'Paid': return 'Paid';
+      case 'Processing': return 'Processing';
       case 'Unpaid': return 'Pending';
       case 'Overdue': return 'Overdue';
       default: return status;
@@ -239,17 +296,19 @@ export default function BillingLayout() {
                   <th className="p-4">Due Date</th>
                   <th className="p-4">Month</th>
                   <th className="p-4">Status</th>
+                  <th className="p-4">Processed By</th>
+                  <th className="p-4">Completed By</th>
                   <th className="p-4 rounded-tr-lg">Amount</th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="p-8 text-center text-gray-500">Loading invoices...</td>
+                    <td colSpan="8" className="p-8 text-center text-gray-500">Loading invoices...</td>
                   </tr>
                 ) : invoices.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="p-8 text-center text-gray-500">No invoices found.</td>
+                    <td colSpan="8" className="p-8 text-center text-gray-500">No invoices found.</td>
                   </tr>
                 ) : invoices.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50 transition-colors group">
@@ -261,16 +320,28 @@ export default function BillingLayout() {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
                           {row.resident_id?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
-                        <span className="font-semibold text-gray-900">{row.resident_id || 'N/A'}</span>
+                        <div>
+                          <span className="font-semibold text-gray-900">{row.resident_id || 'N/A'}</span>
+                          <div className="text-xs text-gray-500">{row.flat || ''}</div>
+                        </div>
                       </div>
                     </td>
                     <td className="p-4 text-gray-600">{row.due_date ? new Date(row.due_date).toLocaleDateString() : 'N/A'}</td>
                     <td className="p-4 text-gray-600">{row.month || 'N/A'}</td>
                     <td className="p-4">
-                      <span className={`px-3 py-1.5 text-xs font-bold rounded-lg ${getStatusColor(row.status)}`}>
-                        {getStatusText(row.status)}
-                      </span>
+                      <select
+                        value={row.status}
+                        onChange={(e) => handleStatusChange(row.id, e.target.value)}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg border-2 border-gray-200 bg-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                      >
+                        <option value="Unpaid">Pending</option>
+                        <option value="Processing">Processing</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Overdue">Overdue</option>
+                      </select>
                     </td>
+                    <td className="p-4 text-gray-600 text-xs">{row.processed_by || '-'}</td>
+                    <td className="p-4 text-gray-600 text-xs">{row.completed_by || '-'}</td>
                     <td className="p-4 font-bold text-gray-900">₹{Number(row.amount || 0).toLocaleString()}</td>
                   </tr>
                 ))}

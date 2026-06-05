@@ -4,25 +4,61 @@ import React, { useState, useEffect } from 'react';
 export default function SOSModule() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const API_BASE = 'http://localhost:5000/api';
 
-  // Auto-fetch SOS logs (simulate real-time monitoring for guards)
+  // Load SOS logs from backend database.
   useEffect(() => {
-    // In a real app, this would be a WebSocket or interval polling
     const fetchLogs = async () => {
-      // Mocking fetch since we don't have a specific API route for SOS yet, 
-      // but the table exists in DB.
-      setLogs([
-        { id: 1, raised_by: 'Flat 402, Tower A', alert_type: 'Medical', status: 'Active', time: new Date() },
-        { id: 2, raised_by: 'Flat 105, Tower C', alert_type: 'Stuck in Lift', status: 'Resolved', time: new Date(Date.now() - 3600000) }
-      ]);
-      setLoading(false);
+      try {
+        const response = await fetch(`${API_BASE}/sos`);
+        const data = await response.json();
+        setLogs(data.map((log) => ({
+          ...log,
+          time: new Date(log.createdAt || log.time)
+        })));
+      } catch (error) {
+        console.error('Failed to load SOS logs:', error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchLogs();
   }, []);
 
-  const triggerSOS = (type) => {
-    alert(`🚨 EMERGENCY TRIGGERED: ${type} Alert sent to Security Desk immediately!`);
-    setLogs([{ id: Date.now(), raised_by: 'My Flat', alert_type: type, status: 'Active', time: new Date() }, ...logs]);
+  const triggerSOS = async (type) => {
+    try {
+      const response = await fetch(`${API_BASE}/sos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raised_by: 'My Flat', alert_type: type })
+      });
+      const newLog = await response.json();
+      setLogs((current) => [{
+        ...newLog,
+        time: new Date(newLog.createdAt)
+      }, ...current]);
+      alert(`🚨 EMERGENCY TRIGGERED: ${type} Alert sent to Security Desk immediately!`);
+    } catch (error) {
+      console.error('Failed to trigger SOS:', error);
+      alert('Unable to trigger SOS right now. Please try again.');
+    }
+  };
+
+  const markResolved = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/sos/${id}/resolve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const updatedLog = await response.json();
+      setLogs((current) => current.map((log) => log.id === updatedLog.id ? {
+        ...log,
+        status: updatedLog.status
+      } : log));
+    } catch (error) {
+      console.error('Failed to resolve SOS log:', error);
+      alert('Unable to mark this alert resolved right now.');
+    }
   };
 
   return (
@@ -111,7 +147,7 @@ export default function SOSModule() {
                     </td>
                     <td className="p-4 text-right">
                       {log.status === 'Active' ? (
-                        <button className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+                        <button onClick={() => markResolved(log.id)} className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-sm">
                           Mark Resolved
                         </button>
                       ) : (
