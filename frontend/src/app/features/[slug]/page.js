@@ -1,4 +1,3 @@
-'use client';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import Header from '../../../components/Header';
@@ -81,7 +80,7 @@ export default function FeatureDetailPage({ params }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-cyan-50 text-slate-900">
-      <Header onMenuClick={() => {}} />
+      <Header />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className={`rounded-[2rem] border border-slate-200 bg-white p-10 shadow-2xl shadow-slate-300/20`}>            
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
