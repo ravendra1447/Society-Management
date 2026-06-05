@@ -65,8 +65,10 @@ const features = [
   }
 ];
 
-export function generateStaticParams() {
-  return features.map((feature) => ({ slug: feature.slug }));
+export async function generateStaticParams() {
+  return features.slice(0, 3).map((feature) => ({
+    slug: feature.slug
+  }));
 }
 
 export default function FeatureDetailPage({ params }) {
